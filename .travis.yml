@@ -1,0 +1,33 @@
+sudo: required
+services:
+    - docker
+
+before_install: 
+    - docker build -t arslanismailaion/client ./client -f ./client/Dockerfile.dev
+script:
+    - docker run -e CI=true arslanismailaion/client npm run test -- --coverage
+
+after_success:
+    -  docker build -t arslanismailaion/multi-client  ./client
+    -  docker build -t arslanismailaion/multi-nginx  ./nginx 
+    -  docker build -t arslanismailaion/multi-server  ./server 
+    -  docker build -t arslanismailaion/multi-worker  ./worker 
+    -  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+    -  docker push arslanismailaion/multi-client
+    -  docker push arslanismailaion/multi-nginx 
+    -  docker push arslanismailaion/multi-server
+    -  docker push arslanismailaion/multi-worker
+
+
+deploy:
+    provider: elasticbeanstalk
+    region: "us-east-1"
+    app: "newbean"
+    env: "Newbean-env"
+    bucket_name: "elasticbeanstalk-us-east-1-612007872592"
+    bucket_path: "newbean"
+    on:
+        branch: master
+    access_key_id: $AWS_ACCESS_KEY
+    secret_access_key: "$AWS_SECRET_KEY" 
+    
